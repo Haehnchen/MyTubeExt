@@ -58,8 +58,8 @@ class MyTubePlayerMainScreenExt(MyTubeHack.MyTubeHack, MyTubePlayerMainScreen):
   #def keyOK(self):
   #  self.session.openWithCallback(self.SelectSearch, MyTubeExtScreens.MyTubeExtSelcSearch)
 
-  def keyRight(self):
-    self.session.openWithCallback(self.SelectSearch, MyTubeExtScreens.MyTubeExtSelcSearch)
+  #def keyRight(self):
+  #  self.session.openWithCallback(self.SelectSearch, MyTubeExtScreens.MyTubeExtSelcSearch)
 
   def handleHistory(self):
     self.session.openWithCallback(self.SelectSearch, MyTubeExtScreens.MyTubeExtSelcSearch)
@@ -81,9 +81,9 @@ class MyTubePlayerMainScreenExt(MyTubeHack.MyTubeHack, MyTubePlayerMainScreen):
     text = _("Results: %s - Page: %s " % (str(total), str(page)))
     self["result"].setText(text)
 
-  def keyOK(self):
-    current = self["feedlist"].getCurrent()[0]
-    self.getUserVideos(current)
+  #def keyOK(self):
+  #  current = self["feedlist"].getCurrent()[0]
+  #  self.getUserVideos(current)
   
 def Plugins(path,**kwargs):
     global plugin_path
