@@ -58,8 +58,8 @@ class MyTubePlayerMainScreenExt(MyTubeHack.MyTubeHack, MyTubePlayerMainScreen):
   #def keyOK(self):
   #  self.session.openWithCallback(self.SelectSearch, MyTubeExtScreens.MyTubeExtSelcSearch)
 
-  def keyRight(self):
-    self.session.openWithCallback(self.SelectSearch, MyTubeExtScreens.MyTubeExtSelcSearch)
+  #def keyRight(self):
+  #  self.session.openWithCallback(self.SelectSearch, MyTubeExtScreens.MyTubeExtSelcSearch)
 
   def handleHistory(self):
     self.session.openWithCallback(self.SelectSearch, MyTubeExtScreens.MyTubeExtSelcSearch)
