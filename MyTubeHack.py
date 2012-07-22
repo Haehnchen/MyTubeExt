@@ -2,9 +2,12 @@
 from Plugins.Extensions.MyTube.plugin import etpm, rootkey
 from Plugins.Extensions.MyTube.MyTubeService import validate_cert
 from enigma import eTPM
+from Screens.MessageBox import MessageBox
 
 import plugin
 from Plugins.Extensions.MyTube.MyTubeService import myTubeService
+
+from Plugins.Extensions.MyTube.plugin import config
 
 # devel hack to remove receiver validatecheck on ubuntu pc
 class MyTubeHack(object):
@@ -42,7 +45,22 @@ class MyTubeHack(object):
         print "Genuine Dreambox validation passed"
         if self.FirstRun == True:
           self.appendEntries = False
-          #myTubeService.startService()
+          myTubeService.startService()
+          
+          # auth user
+          if not config.plugins.mytube.general.username.value is "" and not config.plugins.mytube.general.password.value is "":
+            try:
+              myTubeService.auth_user(config.plugins.mytube.general.username.value, config.plugins.mytube.general.password.value)  
+              if myTubeService.is_auth() is True:
+                self.session.open(MessageBox, 'Login-OK: ' + str(config.plugins.mytube.general.username.value), MessageBox.TYPE_INFO)
+              else:
+                self.session.open(MessageBox, 'Error-Login', MessageBox.TYPE_INFO)
+            except IOError as e:
+                #@TODO: check startService is running twice!?
+                pass      
+            except Exception as e:
+              self.session.open(MessageBox, 'Login-Error: ' + str(e), MessageBox.TYPE_INFO)      
+          
         if self.HistoryWindow is not None:
           self.HistoryWindow.deactivate()
           self.HistoryWindow.instance.hide()

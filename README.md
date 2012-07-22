@@ -9,6 +9,7 @@ Some ideas:
  - (OK) load searches on csv file like (http://www.espend.de/projekte/internetstreams-fuer-movieplayer-dbox2.html)
  - (OK) dynamically change youtube search filter parameters
  - (OK) page searching
- - auth user
- - subscription, favorites, friends
+ - (OK)auth user
+ - (OK) subscription, favorites
+ - create new menus for authed users (friends, ...)
 

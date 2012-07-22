@@ -81,9 +81,9 @@ class MyTubePlayerMainScreenExt(MyTubeHack.MyTubeHack, MyTubePlayerMainScreen):
     text = _("Results: %s - Page: %s " % (str(total), str(page)))
     self["result"].setText(text)
 
-  def keyOK(self):
-    current = self["feedlist"].getCurrent()[0]
-    self.getUserVideos(current)
+  #def keyOK(self):
+  #  current = self["feedlist"].getCurrent()[0]
+  #  self.getUserVideos(current)
   
 def Plugins(path,**kwargs):
     global plugin_path
