@@ -50,18 +50,23 @@ class MyTubePlayerMainScreenExt(MyTubeHack.MyTubeHack, MyTubePlayerMainScreen):
   
   context = ["WizardActions"]
   
-  def __init__(self, session, l2key):
-    super(MyTubePlayerMainScreenExt, self ).__init__(session, l2key)
+#  def __init__(self, session, l2key):
+#    super(MyTubePlayerMainScreenExt, self ).__init__(session, l2key)
   
-    self["result"] = Label("")
+#    self["result"] = Label("")
 
   #def keyOK(self):
-  #  self.session.openWithCallback(self.SelectSearch, MyTubeExtScreens.MyTubeExtSelcSearch)
+    #self.session.openWithCallback(self.SelectSearch, MyTubeExtScreens.MyTubeExtSelcSearch)
+    #self.session.openWithCallback(self.SelectSearch, MyTubeExtScreens.MyTubeExtSelcSearch)
+  #  self.handleMenu()
 
   #def keyRight(self):
   #  self.session.openWithCallback(self.SelectSearch, MyTubeExtScreens.MyTubeExtSelcSearch)
+  #  self.getFeed('asdasd', 'my_favorites')
+  
 
   def handleHistory(self):
+    reload(MyTubeExtScreens)
     self.session.openWithCallback(self.SelectSearch, MyTubeExtScreens.MyTubeExtSelcSearch)
   
   def SelectSearch(self, back = None, vals = {}):
@@ -73,13 +78,6 @@ class MyTubePlayerMainScreenExt(MyTubeHack.MyTubeHack, MyTubePlayerMainScreen):
       vals['startIndex'] = 1
       
     self.searchFeed(back, vals)
-
-  def gotFeed(self, feed):
-    super(MyTubePlayerMainScreenExt, self ).gotFeed(feed)
-    total = myTubeService.getTotalResults()
-    page = myTubeService.getCurrentPage()
-    text = _("Results: %s - Page: %s " % (str(total), str(page)))
-    self["result"].setText(text)
 
   #def keyOK(self):
   #  current = self["feedlist"].getCurrent()[0]

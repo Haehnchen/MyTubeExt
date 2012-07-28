@@ -20,6 +20,18 @@ class MyTubeHack(object):
 
     self.statuslist = []
     self.statuslist.append(( _("Fetching feed entries"), _("Trying to download the Youtube feed entries. Please wait..." ) ))
+
+    # auth user
+    if not config.plugins.mytube.general.username.value is "" and not config.plugins.mytube.general.password.value is "":
+      myTubeService.startService()
+      try:
+        myTubeService.auth_user(config.plugins.mytube.general.username.value, config.plugins.mytube.general.password.value)  
+      except IOError as e:
+        #@TODO: check startService is running twice!?
+        pass      
+      except Exception as e:
+        print 'Login-Error: ' + str(e)        
+    
     #    self.session.openWithCallback(self.SelectSearch, MyTubeExtScreens.MyTubeExtSelcSearch)
     self["feedlist"].style = "state"
     self['feedlist'].setList(self.statuslist)
@@ -46,21 +58,6 @@ class MyTubeHack(object):
         if self.FirstRun == True:
           self.appendEntries = False
           myTubeService.startService()
-          
-          # auth user
-          if not config.plugins.mytube.general.username.value is "" and not config.plugins.mytube.general.password.value is "":
-            try:
-              myTubeService.auth_user(config.plugins.mytube.general.username.value, config.plugins.mytube.general.password.value)  
-              if myTubeService.is_auth() is True:
-                self.session.open(MessageBox, 'Login-OK: ' + str(config.plugins.mytube.general.username.value), MessageBox.TYPE_INFO)
-              else:
-                self.session.open(MessageBox, 'Error-Login', MessageBox.TYPE_INFO)
-            except IOError as e:
-                #@TODO: check startService is running twice!?
-                pass      
-            except Exception as e:
-              self.session.open(MessageBox, 'Login-Error: ' + str(e), MessageBox.TYPE_INFO)      
-          
         if self.HistoryWindow is not None:
           self.HistoryWindow.deactivate()
           self.HistoryWindow.instance.hide()
