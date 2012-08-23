@@ -1,8 +1,12 @@
 from Components.Label import Label
 from Components.MenuList import MenuList
 from Components.config import configfile
-
 from BaseScreen import BaseScreen
+
+import xml.etree.ElementTree as ET
+from xml.etree.ElementTree import SubElement, Element
+from xml.dom import minidom
+import re
 import os
 
 mytube_search_saved = {
@@ -207,3 +211,104 @@ class MyTubeExtSelcSearch(BaseScreen):
     # save last selection
     self.setValue('index', self["myMenu"].l.getCurrentSelectionIndex())
     self.close(selc[-1], mytube_search_saved)
+
+class XmlCrud(object):
+
+    _root = None
+    _filename = None
+
+    _node_tag = 'item'
+    _node_root = 'items'
+    _encoding = 'utf-8'
+
+    def __init__(self, filename):
+        self._filename = filename
+
+        if not os.path.exists(self._filename):
+            self._root = Element(self._node_root)
+            return
+
+        self._root = ET.parse(filename).getroot()
+
+    def get(self, index):
+        return self._root[index]
+
+    def getDict(self, index):
+        ar = {}
+        for element in self._root[index]:
+            ar[element.tag] = element.text
+
+        return ar
+
+    def set(self, index, values):
+        for key, value in values.items():
+            item = self._root[index].find(key)
+            if item is None:
+                item = SubElement(self._root[index], key)
+
+            item.text = value
+
+    def add(self, values, at_index = None):
+        parent = SubElement(self._root, self._node_tag)
+        for key, value in values.items():
+            item = SubElement(parent, key)
+            item.text = value
+
+        if not at_index is None:
+            self.move(self.count() -1, at_index)
+
+    def save(self):
+        f = open( self._filename, 'w')
+        f.write(self._remove_whitespace(self._prettify(self._root)))
+        f.close()
+
+    def remove(self, index):
+        del self._root[index]
+
+    def count(self):
+        return len(self._root)
+
+    def move(self, old, new):
+        if new < 0:
+            new = old + new
+
+        node = self.get(old)
+        self.remove(old)
+        self._root.insert(new, node)
+
+    def isInRange(self, index):
+        return index <= self.count() -1
+
+    def _prettify(self, elem):
+        """Return a pretty-printed XML string for the Element.
+        """
+        rough_string = ET.tostring(elem, self._encoding)
+        reparsed = minidom.parseString(rough_string)
+
+        uglyXml = reparsed.toprettyxml(encoding = self._encoding)
+
+        text_re = re.compile('>\n\s+([^<>\s].*?)\n\s+</', re.DOTALL)
+        return text_re.sub('>\g<1></', uglyXml)
+
+    def _remove_whitespace(self, txt):
+        return '\n'.join([x for x in txt.split("\n") if x.strip()!=''])
+
+class MyTubeSearches(XmlCrud):
+
+    _node_root = 'searches'
+    _node_tag = 'search'
+
+    _default_item = {
+        'name': '',
+        'query': '',
+        'type': 'search',
+        }
+
+    def add(self, values, at_index):
+        super(MyTubeSearches, self).add(dict(self._default_item, **values), at_index)
+
+    def set(self, index, values):
+        super(MyTubeSearches, self).set(index, dict(self._default_item, **values))
+
+    def getDict(self, index):
+        return dict(self._default_item, **super(MyTubeSearches, self).getDict(index))
