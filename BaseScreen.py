@@ -99,8 +99,17 @@ class BaseScreen(Screen):
       self["Statusbar"] = Label("")    
 
     self["Statusbar"].text = str(msg)
-    
-    
+
+  def CurrentSelection(self):
+      return self["myMenu"].l.getCurrentSelection()
+
+  def is_selected(self):
+      if self.Id() is None:
+          self.SetMessage(_('Please select one item'))
+          return False
+
+      return True
+
 from Components.Sources.StaticText import StaticText
 from Screens.Screen import Screen
 from Components.ConfigList import ConfigListScreen, ConfigList
@@ -214,4 +223,5 @@ class BaseListScreen(BaseScreen):
       if len(value) > 0 and not value is "None":
         text = text + "%s:\n%s\n\n" % (key, value)
 
-    self["Description"].setText(text)   
+    self["Description"].setText(text)
+
