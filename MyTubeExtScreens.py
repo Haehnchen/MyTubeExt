@@ -106,10 +106,7 @@ class MyTubeExtSelcSearch(BaseScreen):
     self["orderby_viewcount"] = Label('')
     self["orderby_published"] = Label('')
     self["orderby_rating"] = Label('')
-    
-    #test = Label("all_time")   
-    
-    #test.
+
     self.actions['red'] = lambda: self.set_time('today')
     self.actions['green'] = lambda: self.set_time('this_week')
     self.actions['yellow'] = lambda: self.set_time('this_month')
@@ -119,16 +116,15 @@ class MyTubeExtSelcSearch(BaseScreen):
     self.actions['2'] = lambda: self.set_orderby('viewCount')
     self.actions['3'] = lambda: self.set_orderby('published')
     self.actions['4'] = lambda: self.set_orderby('rating')
-    self.actions['7'] = self.toggleFileVisibility
-    
-    #self.actions['8'] = self.pageDown
-    #self.actions['9'] = self.pageUp
-    
+    self.actions['menu'] = self.toggleFileVisibility
+
     self.actions['0'] = self.AddSearch
     self.actions['9'] = self.EditSearch
     self.actions['8'] = self.DeleteSearch
     self.actions['5'] = self.MoveUp
     self.actions['6'] = self.MoveDown
+
+    self.actions['7'] = self.Save
     
     self.actions['left'] = self.pageDown
     self.actions['right'] = self.pageUp
@@ -136,7 +132,11 @@ class MyTubeExtSelcSearch(BaseScreen):
     self.setStatus()
     
     self.context = ["ChannelSelectBaseActions","WizardActions", "DirectionActions","MenuActions","NumberActions","ColorActions"]    
-    
+
+  def Save(self):
+    self.searches.save()
+    self.SetMessage(_('Saved successfully'))
+
   def AddSearch(self):
     self.session.openWithCallback(self.AddSearchCallback, Smb_BaseEditScreen)
 
@@ -145,8 +145,11 @@ class MyTubeExtSelcSearch(BaseScreen):
     if vals is None:
       return
 
-    self.searches.add(vals)
-    self.searches.save()
+    if self.is_selected() is True and self.Id() < self.searches.count():
+        self.searches.add(vals, self.Id() + 1)
+    else:
+        self.searches.add(vals)
+
     self.rebuild()
 
 
@@ -157,7 +160,6 @@ class MyTubeExtSelcSearch(BaseScreen):
           return
 
       self.searches.move(self.Id(), -1)
-      self.searches.save()
       self.rebuild()
       self["myMenu"].moveToIndex(self.Id() - 1)
 
@@ -169,7 +171,6 @@ class MyTubeExtSelcSearch(BaseScreen):
           return
 
       self.searches.move(self.Id(), self.Id() + 1)
-      self.searches.save()
       self.rebuild()
       self["myMenu"].moveToIndex(self.Id() + 1)
 
@@ -196,7 +197,6 @@ class MyTubeExtSelcSearch(BaseScreen):
           return
 
       self.searches.remove(self.Id())
-      self.searches.save()
       self.rebuild()
 
   def pageUp(self):
@@ -225,6 +225,7 @@ class MyTubeExtSelcSearch(BaseScreen):
         os.rename(path + '.' + filename, path + filename)
         self.SetMessage('show')    
 
+    self.searches = None
     self.rebuild()
 
   def getValue(self, name, default = None):
@@ -278,19 +279,22 @@ class MyTubeExtSelcSearch(BaseScreen):
     self.searches.save()
     return list
 
-  def readcsv(self):
+  def readxml(self):
+
       list = []
 
       xml_file = self.GetConfigDir(self.filename_xml)
+
       if not os.path.exists(xml_file):
           self.SetMessage(_('File not found: %s' % xml_file))
           return list
 
-      try:
-          self.searches = MyTubeSearches(xml_file)
-      except Exception, e:
-          self.SetMessage(_('Parse error on: %s' % xml_file))
-          return list
+      if self.searches is None:
+          try:
+              self.searches = MyTubeSearches(xml_file)
+          except Exception, e:
+              self.SetMessage(_('Parse error on: %s' % xml_file))
+              return list
 
       for i,line in enumerate(self.searches.getAll()):
           list.append((self.searches.getDict(i)['name']))
@@ -298,7 +302,7 @@ class MyTubeExtSelcSearch(BaseScreen):
       return list
 
   def buildlist(self):
-    return self.readcsv()
+    return self.readxml()
 
   def reset(self):
     print 'reset'
@@ -330,7 +334,7 @@ class MyTubeExtSelcSearch(BaseScreen):
 
     # save last selection
     self.setValue('index', index)
-    self.close(self.searches.getDict(index -1).get('query'), mytube_search_saved)
+    self.close(self.searches.getDict(index).get('query'), mytube_search_saved)
 
 
 class Smb_BaseEditScreen(ConfigListScreen, Screen):
