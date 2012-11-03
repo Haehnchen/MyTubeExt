@@ -8,6 +8,7 @@ from Components.Sources.StaticText import StaticText
 from Components.ActionMap import ActionMap
 from Components.config import getConfigListEntry, ConfigText
 from Screens.MessageBox import MessageBox
+from Screens.ChoiceBox import ChoiceBox
 
 import xml.etree.ElementTree as ET
 from xml.etree.ElementTree import SubElement, Element
@@ -71,13 +72,13 @@ class MyTubeExtSelcSearch(BaseScreen):
             <widget name="last_page" position="390,250" size="50,45" valign="center" halign="center" font="Regular;23" transparent="1"/>
             <ePixmap position="440,250" size="45,45" zPosition="0" pixmap="skin_default/vkey_right.png" transparent="1" alphatest="on"/>
 
-            <ePixmap position="350,317" size="35,25" zPosition="0" pixmap="skin_default/buttons/key_0.png" transparent="1" alphatest="on"/>
+            <ePixmap position="350,317" size="35,25" zPosition="0" pixmap="skin_default/buttons/key_menu.png" transparent="1" alphatest="on"/>
             <eLabel  position="390,320" size="200,25" text="Add" font="Regular;19" transparent="1" />            
-            <ePixmap position="350,342" size="35,25" zPosition="0" pixmap="skin_default/buttons/key_9.png" transparent="1" alphatest="on"/>
-            <eLabel  position="390,345" size="200,25" text="Edit" font="Regular;19" transparent="1" />
+            <ePixmap position="350,342" size="35,25" zPosition="0" pixmap="skin_default/buttons/key_5.png" transparent="1" alphatest="on"/>
+            <eLabel  position="390,345" size="200,25" text="Move up" font="Regular;19" transparent="1" />
             
-            <ePixmap position="350,367" size="35,25" zPosition="0" pixmap="skin_default/buttons/key_8.png" transparent="1" alphatest="on"/>
-            <eLabel  position="390,370" size="200,25" text="Delete" font="Regular;19" transparent="1" />            
+            <ePixmap position="350,367" size="35,25" zPosition="0" pixmap="skin_default/buttons/key_6.png" transparent="1" alphatest="on"/>
+            <eLabel  position="390,370" size="200,25" text="Move down" font="Regular;19" transparent="1" />
        
         </screen>
     """    
@@ -116,15 +117,16 @@ class MyTubeExtSelcSearch(BaseScreen):
     self.actions['2'] = lambda: self.set_orderby('viewCount')
     self.actions['3'] = lambda: self.set_orderby('published')
     self.actions['4'] = lambda: self.set_orderby('rating')
-    self.actions['menu'] = self.toggleFileVisibility
+    #self.actions['menu'] = self.toggleFileVisibility
+    self.actions['menu'] = self.handleMenu
 
-    self.actions['0'] = self.AddSearch
-    self.actions['9'] = self.EditSearch
-    self.actions['8'] = self.DeleteSearch
+    self.actions['0'] = self.handleMenu
+    #self.actions['9'] = self.EditSearch
+    #self.actions['8'] = self.DeleteSearch
     self.actions['5'] = self.MoveUp
     self.actions['6'] = self.MoveDown
 
-    self.actions['7'] = self.Save
+    #self.actions['7'] = self.Save
     
     self.actions['left'] = self.pageDown
     self.actions['right'] = self.pageUp
@@ -150,6 +152,7 @@ class MyTubeExtSelcSearch(BaseScreen):
     else:
         self.searches.add(vals)
 
+    self.SetMessage(_('Item added'))
     self.rebuild()
 
 
@@ -175,6 +178,34 @@ class MyTubeExtSelcSearch(BaseScreen):
       self["myMenu"].moveToIndex(self.Id() + 1)
 
 
+  def handleMenu(self):
+      menulist = [(_("Add search"), "add_search")]
+      if self.is_selected() is True:
+          menulist.extend((
+             (_("Edit search"), "edit_search"),
+             (_("Delete search"), "delete_search"),
+          ))
+
+      menulist.extend((
+          (_("Save changes"), "save_searches"),
+      ))
+
+      self.session.openWithCallback(self.openMenu, ChoiceBox, title=_("Select your choice."), list = menulist)
+
+  def openMenu(self, answer):
+      answer = answer and answer[1]
+      if answer is None:
+          return
+
+      if answer is "add_search":
+          self.AddSearch()
+      if answer is "edit_search":
+          self.EditSearch()
+      if answer is "delete_search":
+          self.DeleteSearch()
+      if answer is "save_searches":
+          self.Save()
+
   def EditSearch(self):
       if self.is_selected() is False: return
       vals = self.searches.getDict(self.Id())
@@ -185,7 +216,7 @@ class MyTubeExtSelcSearch(BaseScreen):
       if self.is_selected() is False: return
 
       self.searches.set(self.Id(), vals)
-      self.searches.save()
+      self.SetMessage('Item edited')
       self.rebuild()
 
   def DeleteSearch(self):
@@ -197,15 +228,16 @@ class MyTubeExtSelcSearch(BaseScreen):
           return
 
       self.searches.remove(self.Id())
+      self.SetMessage('Item deleted')
       self.rebuild()
 
   def pageUp(self):
     self.setValue('page', self.getValue('page') + 1)        
 
   def pageDown(self):
-    if self.getValue('page') is 1:
-      self.setValue('page', 2, False)
-      
+    if self.getValue('page') - 1 is 0:
+      return
+
     self.setValue('page', int(self.getValue('page')) - 1)        
         
   def set_time(self, value):
@@ -285,9 +317,9 @@ class MyTubeExtSelcSearch(BaseScreen):
 
       xml_file = self.GetConfigDir(self.filename_xml)
 
-      if not os.path.exists(xml_file):
-          self.SetMessage(_('File not found: %s' % xml_file))
-          return list
+      #if not os.path.exists(xml_file):
+      #    self.SetMessage(_('File not found: %s' % xml_file))
+      #    return list
 
       if self.searches is None:
           try:
@@ -342,7 +374,7 @@ class Smb_BaseEditScreen(ConfigListScreen, Screen):
     args = None
 
     skin = """
-    <screen name="ConfigListScreen" position="center,center" size="560,400" title="ShareMyBox - Settings">
+    <screen name="ConfigListScreen" position="center,center" size="560,400" title="Youtube search">
       <ePixmap pixmap="skin_default/buttons/red.png" position="0,0" size="140,40" alphatest="on" />
       <ePixmap pixmap="skin_default/buttons/green.png" position="140,0" size="140,40" alphatest="on" />
       <widget source="key_red" render="Label" position="0,0" zPosition="1" size="140,40" font="Regular;20" halign="center" valign="center" backgroundColor="#9f1313" transparent="1" />
