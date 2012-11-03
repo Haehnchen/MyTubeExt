@@ -1,14 +1,13 @@
 from Components.Label import Label
 from Components.MenuList import MenuList
 from Components.config import configfile
-from BaseScreen import BaseScreen
 from Components.ConfigList import ConfigListScreen
-from Screens.Screen import Screen
 from Components.Sources.StaticText import StaticText
 from Components.ActionMap import ActionMap
 from Components.config import getConfigListEntry, ConfigText
 from Screens.MessageBox import MessageBox
 from Screens.ChoiceBox import ChoiceBox
+from Screens.Screen import Screen
 
 import xml.etree.ElementTree as ET
 from xml.etree.ElementTree import SubElement, Element
@@ -23,31 +22,30 @@ mytube_search_saved = {
   'orderby': 'relevance',
 }
 
-class MyTubeExtSelcSearch(BaseScreen):
-  filename = 'mytube_search.csv'
-  filename_xml = 'mytube_search.xml'
+class MyTubeExtSelcSearch(Screen):
+  filename = 'mytube_search.xml'
   searches = None
     
   skin = """
-    <screen position="center,center" size="550,440" title="MyTubeExt - Search" >
+    <screen position="center,center" size="550,440" title="MyTube - Search" >
             <widget name="myMenu" position="10,10" size="320,401" scrollbarMode="showOnDemand"/>
             
             <eLabel backgroundColor="#808080" position="340,0" size="1,422" />
             <eLabel backgroundColor="#808080" position="0,422" size="550,1" />
             <eLabel backgroundColor="#808080" position="340,310" size="210,1" />
                   
-            <widget name="Statusbar" position="10,428" size="530,20" font="Regular;12"/>
+            <widget name="statusbar" position="10,428" size="530,20" font="Regular;12"/>
      
             <eLabel text="Filter" position="350,10" size="100,25" font="Regular;19" transparent="1" />
             
             <widget name="filter_alltime" position="390,30" size="140,20" font="Regular;17" transparent="1" />
             <ePixmap position="352,27" size="35,25" zPosition="0" pixmap="skin_default/buttons/key_blue.png" transparent="1" alphatest="on"/>            
-            
-            <widget name="filter_week" position="390,50" size="140,20" font="Regular;17" transparent="1" />
-            <ePixmap position="352,47" size="35,25" zPosition="0" pixmap="skin_default/buttons/key_green.png" transparent="1" alphatest="on"/>
-                        
-            <widget name="filter_month" position="390,70" size="140,20" font="Regular;17" transparent="1" />
-            <ePixmap position="352,67" size="35,25" zPosition="0" pixmap="skin_default/buttons/key_yellow.png" transparent="1" alphatest="on"/>
+
+            <widget name="filter_month" position="390,50" size="140,20" font="Regular;17" transparent="1" />
+            <ePixmap position="352,47" size="35,25" zPosition="0" pixmap="skin_default/buttons/key_yellow.png" transparent="1" alphatest="on"/>
+
+            <widget name="filter_week" position="390,70" size="140,20" font="Regular;17" transparent="1" />
+            <ePixmap position="352,67" size="35,25" zPosition="0" pixmap="skin_default/buttons/key_green.png" transparent="1" alphatest="on"/>
 
             <widget name="filter_today" position="390,90" size="140,20" font="Regular;17" transparent="1" />
             <ePixmap position="352,87" size="35,25" zPosition="0" pixmap="skin_default/buttons/key_red.png" transparent="1" alphatest="on"/>  
@@ -73,7 +71,7 @@ class MyTubeExtSelcSearch(BaseScreen):
             <ePixmap position="440,250" size="45,45" zPosition="0" pixmap="skin_default/vkey_right.png" transparent="1" alphatest="on"/>
 
             <ePixmap position="350,317" size="35,25" zPosition="0" pixmap="skin_default/buttons/key_menu.png" transparent="1" alphatest="on"/>
-            <eLabel  position="390,320" size="200,25" text="Add" font="Regular;19" transparent="1" />            
+            <eLabel  position="390,320" size="200,25" text="Menu" font="Regular;19" transparent="1" />
             <ePixmap position="350,342" size="35,25" zPosition="0" pixmap="skin_default/buttons/key_5.png" transparent="1" alphatest="on"/>
             <eLabel  position="390,345" size="200,25" text="Move up" font="Regular;19" transparent="1" />
             
@@ -81,66 +79,61 @@ class MyTubeExtSelcSearch(BaseScreen):
             <eLabel  position="390,370" size="200,25" text="Move down" font="Regular;19" transparent="1" />
        
         </screen>
-    """    
-    
-  def GetConfigDir(self, filename = None):
+    """
+
+  def __init__(self, session, args = 0):
+      self.session = session
+      self.args = args
+      Screen.__init__(self, self.session)
+      self.build()
+
+
+  def getConfigDir(self, filename = None):
     if filename is None:
       return os.path.dirname(configfile.CONFIG_FILE) + '/'
     
     return os.path.dirname(configfile.CONFIG_FILE) + '/' + filename
 
   def getSearchFile(self):
-    return self.GetConfigDir(self.filename)
+    return self.getConfigDir(self.filename)
 
   def build(self):
    
     self["myMenu"] = MenuList(self.buildlist())
-    
-    self["last_page"] = Label('')    
 
-    self["filter_today"] = Label('')
-    self["filter_week"] = Label('')
-    self["filter_month"] = Label('')
-    self["filter_alltime"] = Label('')
+    # TODO: do we need to init labels?
+    labels = ['last_page', 'filter_today', 'filter_week', 'filter_month' ,'filter_alltime', 'orderby_relevance', 'orderby_viewcount', 'orderby_published', 'orderby_rating', 'statusbar']
+    for label in labels:
+        self[label] = Label('')
 
-    self["orderby_relevance"] = Label('')
-    self["orderby_viewcount"] = Label('')
-    self["orderby_published"] = Label('')
-    self["orderby_rating"] = Label('')
+    self["searchactions"] = ActionMap(["ChannelSelectBaseActions","WizardActions", "DirectionActions","MenuActions","NumberActions","ColorActions"], {
+      "ok": self.ok,
+      "cancel": self.cancel,
+      "back": self.cancel,
+      "red": lambda: self.set_time('today'),
+      "green": lambda: self.set_time('this_week'),
+      "yellow": lambda: self.set_time('this_month'),
+      "blue": lambda: self.set_time('all_time'),
+      "1": lambda: self.set_orderby('relevance'),
+      "2": lambda: self.set_orderby('viewCount'),
+      "3": lambda: self.set_orderby('published'),
+      "4":lambda: self.set_orderby('rating'),
+      "menu": self.handleMenu,
+      "0": self.handleMenu,
+      "5": self.MoveUp,
+      "6" : self.MoveDown,
+      "left": self.pageDown,
+      "right": self.pageUp,
+    }, -2)
 
-    self.actions['red'] = lambda: self.set_time('today')
-    self.actions['green'] = lambda: self.set_time('this_week')
-    self.actions['yellow'] = lambda: self.set_time('this_month')
-    self.actions['blue'] = lambda: self.set_time('all_time')
-    
-    self.actions['1'] = lambda: self.set_orderby('relevance')
-    self.actions['2'] = lambda: self.set_orderby('viewCount')
-    self.actions['3'] = lambda: self.set_orderby('published')
-    self.actions['4'] = lambda: self.set_orderby('rating')
-    #self.actions['menu'] = self.toggleFileVisibility
-    self.actions['menu'] = self.handleMenu
-
-    self.actions['0'] = self.handleMenu
-    #self.actions['9'] = self.EditSearch
-    #self.actions['8'] = self.DeleteSearch
-    self.actions['5'] = self.MoveUp
-    self.actions['6'] = self.MoveDown
-
-    #self.actions['7'] = self.Save
-    
-    self.actions['left'] = self.pageDown
-    self.actions['right'] = self.pageUp
-    
     self.setStatus()
-    
-    self.context = ["ChannelSelectBaseActions","WizardActions", "DirectionActions","MenuActions","NumberActions","ColorActions"]    
 
   def Save(self):
     self.searches.save()
-    self.SetMessage(_('Saved successfully'))
+    self.setMessage(_('Saved successfully'))
 
   def AddSearch(self):
-    self.session.openWithCallback(self.AddSearchCallback, Smb_BaseEditScreen)
+    self.session.openWithCallback(self.AddSearchCallback, MyTubeExtRecordScreen)
 
   def AddSearchCallback(self, vals = None):
 
@@ -152,7 +145,7 @@ class MyTubeExtSelcSearch(BaseScreen):
     else:
         self.searches.add(vals)
 
-    self.SetMessage(_('Item added'))
+    self.setMessage(_('Item added'))
     self.rebuild()
 
 
@@ -190,7 +183,7 @@ class MyTubeExtSelcSearch(BaseScreen):
           (_("Save changes"), "save_searches"),
       ))
 
-      self.session.openWithCallback(self.openMenu, ChoiceBox, title=_("Select your choice."), list = menulist)
+      self.session.openWithCallback(self.openMenu, ChoiceBox, title=_("Select your Action."), list = menulist)
 
   def openMenu(self, answer):
       answer = answer and answer[1]
@@ -209,14 +202,14 @@ class MyTubeExtSelcSearch(BaseScreen):
   def EditSearch(self):
       if self.is_selected() is False: return
       vals = self.searches.getDict(self.Id())
-      self.session.openWithCallback(self.EditSearchCallback, Smb_BaseEditScreen, vals)
+      self.session.openWithCallback(self.EditSearchCallback, MyTubeExtRecordScreen, vals)
 
   def EditSearchCallback(self, vals = None):
       if vals is None: return
       if self.is_selected() is False: return
 
       self.searches.set(self.Id(), vals)
-      self.SetMessage('Item edited')
+      self.setMessage('Item edited')
       self.rebuild()
 
   def DeleteSearch(self):
@@ -228,7 +221,7 @@ class MyTubeExtSelcSearch(BaseScreen):
           return
 
       self.searches.remove(self.Id())
-      self.SetMessage('Item deleted')
+      self.setMessage('Item deleted')
       self.rebuild()
 
   def pageUp(self):
@@ -244,18 +237,18 @@ class MyTubeExtSelcSearch(BaseScreen):
     self.setValue('time', value)
 
   def toggleFileVisibility(self):
-    self._toggleFileVisibility(self.filename_xml)
+    self._toggleFileVisibility(self.filename)
 
   def _toggleFileVisibility(self, filename):
-    path = str(self.GetConfigDir())
+    path = str(self.getConfigDir())
 
     if os.path.exists(path + filename):
       os.rename(path + filename, path + '.' + filename)
-      self.SetMessage('hidden')
+      self.setMessage('hidden')
     else:
       if os.path.exists(path + '.' + filename):
         os.rename(path + '.' + filename, path + filename)
-        self.SetMessage('show')    
+        self.setMessage('show')
 
     self.searches = None
     self.rebuild()
@@ -287,45 +280,18 @@ class MyTubeExtSelcSearch(BaseScreen):
     self["orderby_published"].text = ('(x) ' if self.getValue('orderby') is "published"  else '') + _('Published')
     self["orderby_rating"].text = ('(x) ' if self.getValue('orderby') is "rating"  else '') + _('Rating')    
 
-  def _migrateToToXml(self):
-    csv_file = self.GetConfigDir(self.filename)
-    self.searches = MyTubeSearches(self.GetConfigDir(self.filename_xml))
-    list = []
-    if not os.path.exists(csv_file):
-      self.SetMessage(_('File not found: %s' % csv_file))
-      return list
-
-    fp = open(csv_file)
-    for i, line in enumerate(fp):
-      row = str(line).split(',')
-      row[0] = row[0].strip('"')
-      row[1] = row[1].strip('"')
-      row[2] = row[2].strip('"')
-      if str(row[0]) == 'youtube':
-        list.append((row[1], row[2]))
-        self.searches.add({
-            'name': row[1],
-            'query': row[1],
-        })
-
-    self.searches.save()
-    return list
 
   def readxml(self):
 
       list = []
 
-      xml_file = self.GetConfigDir(self.filename_xml)
-
-      #if not os.path.exists(xml_file):
-      #    self.SetMessage(_('File not found: %s' % xml_file))
-      #    return list
+      xml_file = self.getConfigDir(self.filename)
 
       if self.searches is None:
           try:
               self.searches = MyTubeSearches(xml_file)
           except Exception, e:
-              self.SetMessage(_('Parse error on: %s' % xml_file))
+              self.setMessage(_('Parse error on: %s' % xml_file))
               return list
 
       for i,line in enumerate(self.searches.getAll()):
@@ -368,9 +334,23 @@ class MyTubeExtSelcSearch(BaseScreen):
     self.setValue('index', index)
     self.close(self.searches.getDict(index).get('query'), mytube_search_saved)
 
+  def setMessage(self, msg):
+    self["statusbar"].text = str(msg)
 
-class Smb_BaseEditScreen(ConfigListScreen, Screen):
-    keyid = None
+  def is_selected(self):
+      if self.Id() is None:
+          self.setMessage(_('Please select one item'))
+          return False
+
+      return True
+
+  def CurrentSelection(self):
+      return self["myMenu"].l.getCurrentSelection()
+
+  def cancel(self):
+      self.close()
+
+class MyTubeExtRecordScreen(ConfigListScreen, Screen):
     args = None
 
     skin = """
@@ -389,9 +369,9 @@ class Smb_BaseEditScreen(ConfigListScreen, Screen):
 
         self["key_red"] = StaticText(_("Cancel"))
         self["key_green"] = StaticText(_("OK"))
-        # SKIN Compat HACK!
+
         self["key_yellow"] = StaticText("")
-        # EO SKIN Compat HACK!
+
         self["setupActions"] = ActionMap(["SetupActions", "ColorActions"],
                 {
                 "red": self.cancel,
@@ -401,27 +381,7 @@ class Smb_BaseEditScreen(ConfigListScreen, Screen):
                 "ok": self.__SaveValues,
                 }, -2)
 
-        self.build()
-        self.run()
-
-    def run(self):
-        try:
-            mylist = self.buildlist()
-            self["config"].list = mylist;
-        except Exception as e:
-            print str(e)
-            self.close(str(e))
-            return
-
-
-    def keyLeft(self):
-        ConfigListScreen.keyLeft(self)
-
-    def keyRight(self):
-        ConfigListScreen.keyRight(self)
-
-    def build(self):
-        pass
+        self["config"].list = self.buildlist()
 
     def buildlist(self):
 
@@ -446,25 +406,16 @@ class Smb_BaseEditScreen(ConfigListScreen, Screen):
 
         return list
 
-    def layoutFinished(self):
-        pass
-
-    def save(self, values):
-        return values
-
     def __SaveValues(self):
         values = {}
         for x in self["config"].list:
             values[x[2]] = x[1].getValue()
 
-        result = self.save(values)
-        self.close(result)
+        self.close(values)
 
     def cancel(self):
         self.close()
 
-    def SetId(self, value):
-        self.keyid = value
 
 
 class XmlCrud(object):
