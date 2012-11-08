@@ -85,6 +85,7 @@ class MyTubeExtSelcSearch(Screen):
       self.session = session
       self.args = args
       Screen.__init__(self, self.session)
+      self.onLayoutFinish.append(self.layoutFinished)
       self.build()
 
 
@@ -318,11 +319,10 @@ class MyTubeExtSelcSearch(Screen):
     if self.getValue('index') is 0 or len(self["myMenu"].list) is 0:
       return
     
-    if(self.getValue('index') > len(self["myMenu"].list)):
+    if(self.getValue('index') >= len(self["myMenu"].list)):
       return 
     
     self["myMenu"].moveToIndex(self.getValue('index'))
-    self.setStatus()
 
   def rebuild(self):
     self["myMenu"].setList(self.buildlist())
