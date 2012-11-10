@@ -15,6 +15,10 @@ from xml.dom import minidom
 import re
 import os
 
+from Plugins.Extensions.MyTube.MyTubeService import GoogleSuggestions
+from Components.Sources.List import List
+from xml.etree.cElementTree import fromstring as cet_fromstring
+
 mytube_search_saved = {
   'index': 0,
   'page': 1,
@@ -170,7 +174,6 @@ class MyTubeExtSelcSearch(Screen):
       self.searches.move(self.Id(), self.Id() + 1)
       self.rebuild()
       self["myMenu"].moveToIndex(self.Id() + 1)
-
 
   def handleMenu(self):
       menulist = [(_("Add search"), "add_search")]
@@ -359,7 +362,18 @@ class MyTubeExtRecordScreen(ConfigListScreen, Screen):
       <ePixmap pixmap="skin_default/buttons/green.png" position="140,0" size="140,40" alphatest="on" />
       <widget source="key_red" render="Label" position="0,0" zPosition="1" size="140,40" font="Regular;20" halign="center" valign="center" backgroundColor="#9f1313" transparent="1" />
       <widget source="key_green" render="Label" position="140,0" zPosition="1" size="140,40" font="Regular;20" halign="center" valign="center" backgroundColor="#1f771f" transparent="1" />
-      <widget name="config" position="5,50" size="550,360" scrollbarMode="showOnDemand" zPosition="1"/>
+      <widget name="config" position="5,50" size="550,50" scrollbarMode="showOnDemand" zPosition="1" backgroundColor="#9f1313"/>
+			<widget source="suggestionslist" render="Listbox" position="5,110" zPosition="7" size="550,380" scrollbarMode="showOnDemand" backgroundColor="#1f771f" >
+				<convert type="TemplatedMultiContent">
+					{"template": [
+							MultiContentEntryText(pos = (0, 1), size = (340, 24), font=0, flags = RT_HALIGN_LEFT, text = 0), # index 0 is the name
+							MultiContentEntryText(pos = (350, 1), size = (180, 24), font=1, flags = RT_HALIGN_RIGHT, text = 1), # index 1 are the rtesults
+						],
+					"fonts": [gFont("Regular", 22),gFont("Regular", 18)],
+					"itemHeight": 25
+					}
+				</convert>
+			</widget>
     </screen>"""
 
     def __init__(self, session, args=None):
@@ -370,6 +384,11 @@ class MyTubeExtRecordScreen(ConfigListScreen, Screen):
         self["key_red"] = StaticText(_("Cancel"))
         self["key_green"] = StaticText(_("OK"))
 
+        #self["result"] = Label('sdsd')
+
+        self.list = []
+        self["suggestionslist"] = List(self.list)
+
         self["key_yellow"] = StaticText("")
 
         self["setupActions"] = ActionMap(["SetupActions", "ColorActions"],
@@ -377,6 +396,7 @@ class MyTubeExtRecordScreen(ConfigListScreen, Screen):
                 "red": self.cancel,
                 "green": self.__SaveValues,
                 "save": self.__SaveValues,
+                "blue": self._take,
                 "cancel": self.cancel,
                 "ok": self.__SaveValues,
                 }, -2)
@@ -390,12 +410,17 @@ class MyTubeExtRecordScreen(ConfigListScreen, Screen):
         name = ''
         query = ''
 
+        query_name = ConfigText(fixed_size = False)
+
         if not vals is None:
             name = str(vals.get('name'))
             query = str(vals.get('query'))
 
+        #if name is query:
+        #query_name.addNotifier(self.onQueryNameChanged, False)
+
         fields = [
-                {'name': 'name', 'field': ConfigText(fixed_size = False) , 'text': 'Name', 'value': name},
+                {'name': 'name', 'field': query_name , 'text': 'Name', 'value': name},
                 {'name': 'query', 'field': ConfigText(fixed_size = False) , 'text': 'Search query', 'value': query},
         ]
 
@@ -405,6 +430,56 @@ class MyTubeExtRecordScreen(ConfigListScreen, Screen):
             list.append(getConfigListEntry(_(field['text']), field['field'], field['name']))
 
         return list
+
+    def onQueryNameChanged(self, field):
+        # on init we have no query field
+        if len(self["config"].list) < 1:
+            return
+
+        if len(field.getValue()) is 0:
+            return
+
+        self["config"].list[1][1].setValue(field.getValue())
+        self.FireGoogle(field.getValue())
+
+    def FireGoogle(self, search):
+        google = GoogleSuggestions()
+        data = google.getSuggestions(search)
+        self.test(data)
+
+    def test(self, suggestions):
+        if suggestions and len(suggestions) > 0:
+            suggestions_tree = cet_fromstring( suggestions )
+            if suggestions_tree:
+                self.list = []
+                self.suggestlist = []
+                for suggestion in suggestions_tree.findall("CompleteSuggestion"):
+                    name = None
+                    numresults = None
+                    for subelement in suggestion:
+                        if subelement.attrib.has_key('data'):
+                            name = subelement.attrib['data'].encode("UTF-8")
+                        if subelement.attrib.has_key('int'):
+                            numresults = subelement.attrib['int']
+                        if name and numresults:
+                            self.suggestlist.append((name, numresults ))
+                if len(self.suggestlist):
+                    self.suggestlist.sort(key=lambda x: int(x[1]))
+                    self.suggestlist.reverse()
+                    for entry in self.suggestlist:
+                        self.list.append((entry[0], entry[1] + _(" Results") ))
+                    self["suggestionslist"].setList(self.list)
+                    self["suggestionslist"].setIndex(0)
+
+
+    def _take(self):
+        selc = self["suggestionslist"].getCurrent()
+        if selc is None:
+            return
+
+        #self["config"].list[0][1].text = 'aaaa'
+        self["config"].list[0][1].setValue(selc[0])
+        #self["config"].list[0][1].changedFinal()
 
     def __SaveValues(self):
         values = {}
